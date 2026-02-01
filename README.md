@@ -84,4 +84,4 @@ A: 请检查终端是否报错。确保 src/extension.js 中的 id 与 package.j
 ## 🧷 后记
 > 此项目由Gemini生成
 
-原因是[fs-content](https://github.com/Rundll86/fs-context)的扩展开发者在多次催促下仍然懒得做热重载, 我就借助Gemini自己做了一个
+原因是[fs-context](https://github.com/Rundll86/fs-context)的扩展开发者在多次催促下仍然懒得做热重载, 我就借助Gemini自己做了一个(感谢原作者对于拼写的纠正)
