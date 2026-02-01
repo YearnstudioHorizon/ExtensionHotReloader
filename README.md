@@ -1,7 +1,5 @@
 # 🧶 TurboWarp Extension Hot Reload Dev Server
-> **Yearnstudio 定制版** | 专为高效开发非沙箱 (Unsandboxed) 扩展打造
 
-[![Yearnstudio](https://img.shields.io/badge/Yearnstudio-Horizon-0FBD8C?style=flat-square)](https://yearn.studio)
 [![TurboWarp](https://img.shields.io/badge/Platform-TurboWarp-ff4c4c?style=flat-square)](https://turbowarp.org)
 [![Yarn](https://img.shields.io/badge/Package_Manager-Yarn-2C8EBB?style=flat-square)](https://yarnpkg.com)
 
@@ -85,4 +83,5 @@ A: 请检查终端是否报错。确保 src/extension.js 中的 id 与 package.j
 
 ## 🧷 后记
 > 此项目由Gemini生成
+
 原因是[fs-content](https://github.com/Rundll86/fs-context)的扩展开发者在多次催促下仍然懒得做热重载, 我就借助Gemini自己做了一个
