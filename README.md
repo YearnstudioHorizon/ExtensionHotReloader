@@ -1,5 +1,7 @@
 # 🧶 TurboWarp Extension Hot Reload Dev Server
 
+[English](/README_En.md)
+
 [![TurboWarp](https://img.shields.io/badge/Platform-TurboWarp-ff4c4c?style=flat-square)](https://turbowarp.org)
 [![Yarn](https://img.shields.io/badge/Package_Manager-Yarn-2C8EBB?style=flat-square)](https://yarnpkg.com)
 
