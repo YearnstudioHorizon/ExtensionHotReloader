@@ -63,7 +63,7 @@ const broadcastChange = (filename) => {
 
     const time = new Date().toLocaleTimeString();
     console.log(`\n\x1b[42m\x1b[30m [UPDATE] \x1b[0m \x1b[32m${time}\x1b[0m`);
-    console.log(`   文件: ${path.basename(filename)}  大小: ${sizeStr}  客户端: ${count}`);
+    console.log(`   文件: ${path.basename(filename)}  大小: ${sizeStr}`);
 };
 
 let fsWait = false;
