@@ -21,7 +21,32 @@ const PORT = 8000;
 const EXT_FILE = path.join(__dirname, '../src/extension.js');
 const LOADER_FILE = path.join(__dirname, 'loader.js');
 
+let remoteUrl = null;
+const urlIndex = process.argv.indexOf('--url');
+if (urlIndex !== -1 && urlIndex + 1 < process.argv.length) {
+    remoteUrl = process.argv[urlIndex + 1];
+}
+
+let remoteContent = '';
+let remoteHash = '';
+
+const fetchUrl = (urlStr) => new Promise((resolve, reject) => {
+    const protocol = urlStr.startsWith('https') ? require('https') : require('http');
+    const targetUrl = new URL(urlStr);
+    targetUrl.searchParams.set('_t', Date.now()); // 防止缓存
+    protocol.get(targetUrl.toString(), (res) => {
+        if (res.statusCode !== 200) {
+            res.resume(); // 消耗响应数据以释放内存
+            return reject(new Error(`Status Code: ${res.statusCode}`));
+        }
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+    }).on('error', reject);
+});
+
 const getHash = () => {
+    if (remoteUrl) return remoteHash;
     if (!fs.existsSync(EXT_FILE)) return '';
     const content = fs.readFileSync(EXT_FILE);
     return crypto.createHash('md5').update(content).digest('hex');
@@ -31,7 +56,12 @@ app.get('/version', (req, res) => { res.json({ hash: getHash() }); });
 
 app.get('/code.js', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    res.sendFile(EXT_FILE);
+    res.setHeader('Content-Type', 'application/javascript');
+    if (remoteUrl) {
+        res.send(remoteContent);
+    } else {
+        res.sendFile(EXT_FILE);
+    }
 });
 
 app.get('/extension.js', (req, res) => {
@@ -42,17 +72,21 @@ app.get('/extension.js', (req, res) => {
     res.send(loaderCode);
 });
 
-const broadcastChange = (filename) => {
+const broadcastChange = (filename, size) => {
     const hash = getHash();
     const msg = JSON.stringify({ type: 'change', hash });
     let count = 0;
 
     let sizeStr = '0 B';
-    try {
-        const stats = fs.statSync(EXT_FILE);
-        const size = stats.size;
+    if (size !== undefined) {
         sizeStr = size < 1024 ? size + ' B' : (size / 1024).toFixed(2) + ' KB';
-    } catch(e) {}
+    } else {
+        try {
+            const stats = fs.statSync(EXT_FILE);
+            const fileSize = stats.size;
+            sizeStr = fileSize < 1024 ? fileSize + ' B' : (fileSize / 1024).toFixed(2) + ' KB';
+        } catch(e) {}
+    }
 
     wss.clients.forEach(client => {
         if (client.readyState === 1) {
@@ -66,15 +100,32 @@ const broadcastChange = (filename) => {
     console.log(`   文件: ${path.basename(filename)}  大小: ${sizeStr}`);
 };
 
-let fsWait = false;
-if (fs.existsSync(EXT_FILE)) {
-    fs.watch(EXT_FILE, (event, filename) => {
-        if (filename) {
-            if (fsWait) return;
-            fsWait = setTimeout(() => { fsWait = false; }, 100);
-            broadcastChange(filename);
-        }
-    });
+if (remoteUrl) {
+    const pollRemote = async () => {
+        try {
+            const text = await fetchUrl(remoteUrl);
+            const hash = crypto.createHash('md5').update(text).digest('hex');
+            if (hash !== remoteHash) {
+                const isFirst = remoteHash === '';
+                remoteContent = text;
+                remoteHash = hash;
+                if (!isFirst) broadcastChange(remoteUrl, Buffer.byteLength(text));
+            }
+        } catch (e) {}
+    };
+    pollRemote(); // 初始获取
+    setInterval(pollRemote, 1000); // 每秒轮询一次变更
+} else {
+    let fsWait = false;
+    if (fs.existsSync(EXT_FILE)) {
+        fs.watch(EXT_FILE, (event, filename) => {
+            if (filename) {
+                if (fsWait) return;
+                fsWait = setTimeout(() => { fsWait = false; }, 100);
+                broadcastChange(filename);
+            }
+        });
+    }
 }
 
 server.listen(PORT, async () => {
@@ -86,6 +137,9 @@ server.listen(PORT, async () => {
 \x1b[0m`);
     console.log(`\x1b[32mHTTP: http://127.0.0.1:${PORT}\x1b[0m`);
     console.log(`\x1b[35mWS:   ws://127.0.0.1:${PORT}\x1b[0m`);
+    if (remoteUrl) {
+        console.log(`\x1b[33m正在监听远程文件: ${remoteUrl}\x1b[0m`);
+    }
 
     const autoOpenUrl = `https://turbowarp.org/editor?extension=http://localhost:${PORT}/extension.js`;
 
